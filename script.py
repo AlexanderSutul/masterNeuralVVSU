@@ -56,7 +56,6 @@ def get_data(filename):  # получение первичных данных и
     doc = open(filename, 'rb')
     reader = csv.reader(doc)
     formatted_data = []
-    alert = 0
     for row in reader:
         for items in row:
             splitted_items = items.split(';')

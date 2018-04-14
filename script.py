@@ -43,7 +43,7 @@ def save_data(net, sample_name):  # сохранение сети в файл
     file_obj = open(file_name, 'w')
     pickle.dump(net, file_obj)
     file_obj.close()
-    return "File saved."
+    return "File saved. With name {0}.".format(str(file_name))
 
 
 def load_data(sample_name):  # загрузка сети в файл

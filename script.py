@@ -7,12 +7,31 @@ import pickle
 import csv
 
 
-def normalize():
-    pass
+def normalize(values):
+    x_min = min(values)
+    x_max = max(values)
+    b = 1
+    a = 0
+    result_array = []
+    result = [{1: x_min}, {2: x_max}]
+    for i in range(len(values)):
+        x = values[i]
+        y = ((x - x_min) / (x_max - x_min)) * (b - a) + a
+        result_array.append(y)
+    result.append({3: result_array})
+    return result
 
 
-def denormalize():
-    pass
+def denormalize(values):
+    x_min = values[0][1]
+    x_max = values[1][2]
+    data = values[2][3]
+    result_array = []
+    for i in range(len(data)):
+        x = data[i]
+        y = (x_max - x_min) * x + x_min
+        result_array.append(y)
+    return result_array
 
 
 def denormilize_out_param(sample):
@@ -43,29 +62,33 @@ def get_data(filename):  # получение первичных данных и
             customed = [(float(elem)) for elem in splitted_items]
             formatted_data.append(customed)
     ds = SupervisedDataSet(9, 1)
+    ages = []
     for row in formatted_data:
         # print(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
         ds.addSample((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]), (row[9]))
+        ages.append(row[0])
+    newages = normalize(ages)
+    print(denormalize(newages))
     return ds
 
 
 def start():
-    pass
+    ds = get_data("data_for_analize_MEP.csv")
+
+    net = buildNetwork(9, 3, 1)
+    trainer = BackpropTrainer(net, ds)
+
+    sample_name = "mep"
+
+    epochs = 1000
+    trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=0.99, verbose=True)
+
+    save_data(net, sample_name)
+    newNet = load_data(sample_name)
+
+    result = newNet.activate([19, 22647, 60, 78, 22.86236854, 36, 27, 36, 33820.475])
+
+    return result
 
 
-ds = get_data("data_for_analize_MEP.csv")
-
-net = buildNetwork(9, 3, 1)
-trainer = BackpropTrainer(net, ds)
-
-sample_name = "mep"
-
-epochs = 1000
-trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=0.99, verbose=True)
-
-save_data(net, sample_name)
-newNet = load_data(sample_name)
-
-result = newNet.activate([19, 22647, 60, 78, 22.86236854, 36, 27, 36, 33820.475])
-
-print(result)
+print(start())

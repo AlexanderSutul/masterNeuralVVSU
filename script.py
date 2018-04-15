@@ -7,25 +7,25 @@ import pickle
 import csv
 
 
-def normalize(values):
+def normalize(values):  # нормализация значений
     x_min = min(values)
     x_max = max(values)
     b = 1
     a = 0
     result_array = []
-    result = [{1: x_min}, {2: x_max}]
+    result = {'out': {'min': x_min, 'max': x_max, 'data': result_array}}
     for i in range(len(values)):
         x = values[i]
         y = ((x - x_min) / (x_max - x_min)) * (b - a) + a
         result_array.append(y)
-    result.append({3: result_array})
+    result['out']['data'] = result_array
     return result
 
 
-def denormalize(values):
-    x_min = values[0][1]
-    x_max = values[1][2]
-    data = values[2][3]
+def denormalize(values):  # денормализация значений
+    x_min = values['out']['min']
+    x_max = values['out']['max']
+    data = values['out']['data']
     result_array = []
     for i in range(len(data)):
         x = data[i]
@@ -34,16 +34,12 @@ def denormalize(values):
     return result_array
 
 
-def denormilize_out_param(sample):
-    pass
-
-
 def save_data(net, sample_name):  # сохранение сети в файл
     file_name = '{0}'.format(str(sample_name))
     file_obj = open(file_name, 'w')
     pickle.dump(net, file_obj)
     file_obj.close()
-    return "File saved. With name {0}.".format(str(file_name))
+    return "File saved with name '{0}'.".format(str(file_name))
 
 
 def load_data(sample_name):  # загрузка сети в файл
@@ -64,7 +60,6 @@ def get_data(filename):  # получение первичных данных и
     ds = SupervisedDataSet(9, 1)
     ages = []
     for row in formatted_data:
-        # print(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
         ds.addSample((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]), (row[9]))
         ages.append(row[0])
     newages = normalize(ages)
@@ -83,7 +78,7 @@ def start():
     epochs = 1000
     trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=0.99, verbose=True)
 
-    save_data(net, sample_name)
+    print(save_data(net, sample_name))
     newNet = load_data(sample_name)
 
     result = newNet.activate([19, 22647, 60, 78, 22.86236854, 36, 27, 36, 33820.475])

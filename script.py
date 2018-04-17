@@ -7,83 +7,111 @@ import pickle
 import csv
 
 
-def normalize(values):  # нормализация значений
-    x_min = min(values)
-    x_max = max(values)
-    b = 1
-    a = 0
-    result_array = []
-    result = {'out': {'min': x_min, 'max': x_max, 'data': result_array}}
-    for i in range(len(values)):
-        x = values[i]
-        y = ((x - x_min) / (x_max - x_min)) * (b - a) + a
-        result_array.append(y)
-    result['out']['data'] = result_array
-    return result
+class NeuralNetMaster:
+    EPOCHS = 1000
+    VALID_PROP = 0.99
+    VERBOSE = True
+    RESULT = None
+
+    def __init__(self, file_name, sample_name, query_type, activation_data):
+        self.file_name = file_name
+        self.sample_name = sample_name
+        self.query_type = query_type
+        self.activation_data = activation_data
+        self.start()
+
+    def normalize(self, values):  # нормализация значений
+        x_min = min(values)
+        x_max = max(values)
+        b = 1
+        a = 0
+        result_array = []
+        result = {'out': {'min': x_min, 'max': x_max, 'data': result_array}}
+        for i in range(len(values)):
+            x = values[i]
+            y = ((x - x_min) / (x_max - x_min)) * (b - a) + a
+            result_array.append(y)
+        result['out']['data'] = result_array
+        return result
+
+    def denormalize(self, values):  # денормализация значений
+        x_min = values['out']['min']
+        x_max = values['out']['max']
+        data = values['out']['data']
+        result_array = []
+        for i in range(len(data)):
+            x = data[i]
+            y = (x_max - x_min) * x + x_min
+            result_array.append(y)
+        return result_array
+
+    def save_data(self, net, sample_name):  # сохранение сети в файл
+        file_name = '{0}'.format(str(sample_name))
+        file_obj = open(file_name, 'w')
+        pickle.dump(net, file_obj)
+        file_obj.close()
+        print "File saved with name '{0}'.".format(str(file_name))
+
+    def load_data(self, sample_name):  # загрузка сети в файл
+        file_obj = open("{0}".format(str(sample_name)), 'r')
+        net = pickle.load(file_obj)
+        return net
+
+    def get_data(self, filename):  # получение первичных данных из csv файла
+        doc = open(filename, 'rb')
+        reader = csv.reader(doc)
+        formatted_data = []
+        for row in reader:
+            for items in row:
+                splitted_items = items.split(';')
+                customed = [(float(elem)) for elem in splitted_items]
+                formatted_data.append(customed)
+        data_set = SupervisedDataSet(9, 1)
+        sexs = []
+        ages = []
+        for row in formatted_data:
+            data_set.addSample((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]), (row[9]))
+            ages.append(row[0])
+
+        return data_set
+
+    def train_net(self, data_set, epochs, validProp, verbose):  # тренировка данных
+        net = buildNetwork(9, 3, 1)
+        trainer = BackpropTrainer(net, data_set)
+        trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=validProp, verbose=verbose)
+        return net
+
+    def get_result(self, net):
+        print("self.activation_data")
+        print(self.activation_data)
+        self.RESULT = net.activate(self.activation_data)
+        return self.RESULT
+
+    def start(self):  # запуск приложения
+
+        if self.query_type == 'get_data_from_csv_file_and_train':
+            # Получение данных из csv файла
+            data_set = self.get_data(self.file_name)
+            # Тренировка на данных и получение тренированной сети
+            net = self.train_net(data_set, self.EPOCHS, self.VALID_PROP, self.VERBOSE)
+            # Сохранение нейросети в файл
+            self.save_data(net, self.sample_name)
+        elif self.query_type == 'get_answer':
+            # Загрузка нейросети из файла
+            net = self.load_data(self.sample_name)
+            # Активация и получение результата
+            print(self.get_result(net))
 
 
-def denormalize(values):  # денормализация значений
-    x_min = values['out']['min']
-    x_max = values['out']['max']
-    data = values['out']['data']
-    result_array = []
-    for i in range(len(data)):
-        x = data[i]
-        y = (x_max - x_min) * x + x_min
-        result_array.append(y)
-    return result_array
+# Начало работы программы
 
+# input_data = [30, 25000, 42, 50, 21, 35, 21, 25, 24000]
+input_data = [29, 24108, 52, 70, 18.87066338, 28, 21, 36, 27303.47385] #121.10775595
+# input_data = [48, 23377, 80, 90, 29.74419988, 35, 29, 33, 36685.23509] #121.10775595
+# Запросы:
+# get_data_from_csv_file_and_train => Получение данных из файла CSV и тренировка данных и Сохранение
+# тренированной сети в файле
+# get_answer => Загрузка тренированной сети из файла и получение ответа
+query_type = 'get_answer'
 
-def save_data(net, sample_name):  # сохранение сети в файл
-    file_name = '{0}'.format(str(sample_name))
-    file_obj = open(file_name, 'w')
-    pickle.dump(net, file_obj)
-    file_obj.close()
-    return "File saved with name '{0}'.".format(str(file_name))
-
-
-def load_data(sample_name):  # загрузка сети в файл
-    file_obj = open("{0}".format(str(sample_name)), 'r')
-    net = pickle.load(file_obj)
-    return net
-
-
-def get_data(filename):  # получение первичных данных из csv файла
-    doc = open(filename, 'rb')
-    reader = csv.reader(doc)
-    formatted_data = []
-    for row in reader:
-        for items in row:
-            splitted_items = items.split(';')
-            customed = [(float(elem)) for elem in splitted_items]
-            formatted_data.append(customed)
-    ds = SupervisedDataSet(9, 1)
-    ages = []
-    for row in formatted_data:
-        ds.addSample((row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]), (row[9]))
-        ages.append(row[0])
-    newages = normalize(ages)
-    print(denormalize(newages))
-    return ds
-
-
-def start():
-    ds = get_data("data_for_analize_MEP.csv")
-
-    net = buildNetwork(9, 3, 1)
-    trainer = BackpropTrainer(net, ds)
-
-    sample_name = "mep"
-
-    epochs = 1000
-    trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=0.99, verbose=True)
-
-    print(save_data(net, sample_name))
-    newNet = load_data(sample_name)
-
-    result = newNet.activate([19, 22647, 60, 78, 22.86236854, 36, 27, 36, 33820.475])
-
-    return result
-
-
-print(start())
+app = NeuralNetMaster("data_for_analize_MEP.csv", 'mep', query_type, input_data)

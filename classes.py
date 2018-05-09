@@ -82,6 +82,18 @@ class NeuralNetMaster:
     shins = []
     out = []
 
+    sexes_test = []
+    ages_test = []
+    shoulders_test = []
+    heights_test = []
+    chests_test = []
+    body_index_masses_test = []
+    body_mass_test = []
+    leans_test = []
+    forearms_test = []
+    shins_test = []
+    out_test = []
+
     normalized_sexes = []
     normalized_ages = []
     normalized_shoulders = []
@@ -93,6 +105,18 @@ class NeuralNetMaster:
     normalized_forearms = []
     normalized_shins = []
     normalized_out = []
+
+    normalized_sexes_test = []
+    normalized_ages_test = []
+    normalized_shoulders_test = []
+    normalized_heights_test = []
+    normalized_chests_test = []
+    normalized_body_index_masses_test = []
+    normalized_body_mass_test = []
+    normalized_leans_test = []
+    normalized_forearms_test = []
+    normalized_shins_test = []
+    normalized_out_test = []
 
     def __init__(self, file_name, sample_name, query_type, data):
         self.file_name = file_name
@@ -132,10 +156,10 @@ class NeuralNetMaster:
         x = float(value)
         x_min = values['min']
         x_max = values['max']
-        print(x_min, x_max, x, param_name)
         b = 1
         a = 0
         y = ((x - x_min) / (x_max - x_min)) * (b - a) + a
+        print(x_min, x_max, x, y, param_name)
         return y
 
     def denormalize(self, x, param):  # денормализация значений
@@ -221,10 +245,78 @@ class NeuralNetMaster:
 
         return data_set
 
+    def get_test_data(self, filename):  # получение первичных данных из csv файла
+        doc = open(filename, 'rb')
+        reader = csv.reader(doc)
+        formatted_data = []
+        for row in reader:
+            for items in row:
+                splitted_items = items.split(';')
+                floated_items = [(float(elem)) for elem in splitted_items]
+                formatted_data.append(floated_items)
+        data_set = SupervisedDataSet(10, 1)
+
+        for row in formatted_data:
+            self.sexes_test.append(row[0])
+            self.ages_test.append(row[1])
+            self.heights_test.append(row[2])
+            self.body_mass_test.append(row[3])
+            self.chests_test.append(row[4])
+            self.body_index_masses_test.append(row[5])
+            self.shoulders_test.append(row[6])
+            self.forearms_test.append(row[7])
+            self.shins_test.append(row[8])
+            self.leans_test.append(row[9])
+            self.out_test.append(row[10])
+            print(row)
+
+        self.normalized_sexes_test = self.normalize(self.sexes_test, "sex")
+        self.normalized_ages_test = self.normalize(self.ages_test, "age")
+        self.normalized_heights_test = self.normalize(self.heights_test, "height")
+        self.normalized_body_mass_test = self.normalize(self.body_mass_test, "bm")
+        self.normalized_chests_test = self.normalize(self.chests_test, "chest")
+        self.normalized_body_index_masses_test = self.normalize(self.body_index_masses_test, "bim")
+        self.normalized_shoulders_test = self.normalize(self.shoulders_test, "shoulder")
+        self.normalized_forearms_test = self.normalize(self.forearms_test, "forearm")
+        self.normalized_shins_test = self.normalize(self.shins_test, "shin")
+        self.normalized_leans_test = self.normalize(self.leans_test, "lean")
+        self.normalized_out_test = self.normalize(self.out_test, "out")
+        print("self.normalized_sexes", self.normalized_sexes_test)
+        print("self.normalized_ages", self.normalized_ages_test)
+        print("self.normalized_shoulders", self.normalized_shoulders_test)
+        print("self.normalized_heights", self.normalized_heights_test)
+        print("self.normalized_chests", self.normalized_chests_test)
+        print("self.normalized_body_index_masses", self.normalized_body_index_masses_test)
+        print("self.normalized_body_mass", self.normalized_body_mass_test)
+        print("self.normalized_leans", self.normalized_leans_test)
+        print("self.normalized_forearms", self.normalized_forearms_test)
+        print("self.normalized_shins", self.normalized_shins_test)
+        print("self.normalized_out", self.normalized_out_test)
+
+        for sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean, output in zip(
+                self.normalized_sexes_test['out']['data'],
+                self.normalized_ages_test['out']['data'],
+                self.normalized_heights_test['out']['data'],
+                self.normalized_body_mass_test['out']['data'],
+                self.normalized_chests_test['out']['data'],
+                self.normalized_body_index_masses_test['out']['data'],
+                self.normalized_shoulders_test['out']['data'],
+                self.normalized_forearms_test['out']['data'],
+                self.normalized_shins_test['out']['data'],
+                self.normalized_leans_test['out']['data'],
+                self.normalized_out_test['out']['data']):
+            sample = (sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output
+            print("sample test", sample)
+            data_set.addSample((sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output)
+
+        return data_set
+
     def train_net(self, data_set, epochs, validProp, verbose):  # тренировка данных
         net = buildNetwork(10, 3, 1)
         trainer = BackpropTrainer(net, data_set)
-        trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=validProp, verbose=verbose)
+        trainer.trainUntilConvergence(maxEpochs=epochs,
+                                      verbose=verbose)
+        self.get_test_data('mep_test_data_last.csv')
         return net
 
     def get_result(self, net):
@@ -255,9 +347,9 @@ class NeuralNetMaster:
         data.append(forearm)
         data.append(shin)
         data.append(lean)
-        print("data", data)
+        print('data', data)
         answer = net.activate(data)
-        print("anser", answer)
+        print("answer", answer)
         return self.denormalize(answer, "out")
 
     def start(self):  # запуск приложения

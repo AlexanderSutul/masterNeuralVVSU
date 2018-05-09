@@ -15,7 +15,7 @@ def get_answer():
             post['shoulder'], post['forearm'], post['shin'], post['lean']]
     query_type = 'get_answer'
     type_for_analize = post['type']
-    answer = NeuralNetMaster("mep_test_data_last.csv", type_for_analize, query_type, data)
+    answer = NeuralNetMaster("mep_data_last.csv", type_for_analize, query_type, data)
     return str(answer.RESULT)
 
 
@@ -23,7 +23,7 @@ def get_answer():
 @app.route("/train", methods=["GET"])
 def send_for_train():
     query_type = 'get_data_from_csv_file_and_train'
-    NeuralNetMaster("mep_test_data_last.csv", 'mep', query_type, None)
+    NeuralNetMaster("mep_data_last.csv", 'mep', query_type, None)
     return "Обучение прошло успешно!"
 
 

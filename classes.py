@@ -65,7 +65,7 @@ def getParamInputValueForNormalize(connector, param):
 
 
 class NeuralNetMaster:
-    EPOCHS = 1000  # TODO поменять на значение на 1000 итераций
+    EPOCHS = 10000
     VALID_PROP = 0.99
     VERBOSE = True
     RESULT = []
@@ -268,7 +268,6 @@ class NeuralNetMaster:
             self.shins_test.append(row[8])
             self.leans_test.append(row[9])
             self.out_test.append(row[10])
-            print(row)
 
         self.normalized_sexes_test = self.normalize(self.sexes_test, "sex")
         self.normalized_ages_test = self.normalize(self.ages_test, "age")
@@ -310,6 +309,10 @@ class NeuralNetMaster:
             data_set.addSample((sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output)
 
         return data_set
+
+    def test_answer(self):
+        
+        pass
 
     def train_net(self, data_set, epochs, validProp, verbose):  # тренировка данных
         net = buildNetwork(10, 3, 1)
@@ -365,3 +368,5 @@ class NeuralNetMaster:
             net = self.load_data(self.sample_name)
             # Активация и получение результата
             self.RESULT = self.get_result(net)
+
+# TODO Сделать проверку на ошибку, достаточно иметь 20%, дальше не лезть!

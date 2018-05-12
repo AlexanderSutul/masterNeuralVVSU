@@ -24,8 +24,8 @@ def updateParamToDB(connector, data):
     minimal = data['data']['min']
     maximum = data["data"]["max"]
     sql = """
-            UPDATE params 
-            SET min = %s, max = %s 
+            UPDATE params
+            SET min = %s, max = %s
             WHERE param = '%s'
             """ % (minimal, maximum, param_name)
     print(sql)
@@ -467,3 +467,4 @@ class NeuralNetMaster:
             # print('Returned report ', report)
 
 # TODO Сделать проверку на ошибку, достаточно иметь 20%
+# TODO test

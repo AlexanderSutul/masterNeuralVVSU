@@ -65,9 +65,7 @@ def getParamInputValueForNormalize(connector, param):
 
 
 class NeuralNetMaster:
-    EPOCHS = 10000
-    VALID_PROP = 0.99
-    VERBOSE = True
+    EPOCHS = 10000  # TODO Переставить на 10000
     RESULT = []
 
     sexes = []
@@ -245,7 +243,13 @@ class NeuralNetMaster:
 
         return data_set
 
-    def get_test_data(self, filename):  # получение первичных данных из csv файла
+    def get_test_learned_data(self, file_type):  # получение первичных данных из csv файла
+        if file_type is 1:
+            filename = "mep_data_last.csv"
+        elif file_type is 0:
+            filename = "mep_test_data_last.csv"
+        else:
+            return None
         doc = open(filename, 'rb')
         reader = csv.reader(doc)
         formatted_data = []
@@ -254,7 +258,6 @@ class NeuralNetMaster:
                 splitted_items = items.split(';')
                 floated_items = [(float(elem)) for elem in splitted_items]
                 formatted_data.append(floated_items)
-        data_set = SupervisedDataSet(10, 1)
 
         for row in formatted_data:
             self.sexes_test.append(row[0])
@@ -269,57 +272,40 @@ class NeuralNetMaster:
             self.leans_test.append(row[9])
             self.out_test.append(row[10])
 
-        self.normalized_sexes_test = self.normalize(self.sexes_test, "sex")
-        self.normalized_ages_test = self.normalize(self.ages_test, "age")
-        self.normalized_heights_test = self.normalize(self.heights_test, "height")
-        self.normalized_body_mass_test = self.normalize(self.body_mass_test, "bm")
-        self.normalized_chests_test = self.normalize(self.chests_test, "chest")
-        self.normalized_body_index_masses_test = self.normalize(self.body_index_masses_test, "bim")
-        self.normalized_shoulders_test = self.normalize(self.shoulders_test, "shoulder")
-        self.normalized_forearms_test = self.normalize(self.forearms_test, "forearm")
-        self.normalized_shins_test = self.normalize(self.shins_test, "shin")
-        self.normalized_leans_test = self.normalize(self.leans_test, "lean")
-        self.normalized_out_test = self.normalize(self.out_test, "out")
-        print("self.normalized_sexes", self.normalized_sexes_test)
-        print("self.normalized_ages", self.normalized_ages_test)
-        print("self.normalized_shoulders", self.normalized_shoulders_test)
-        print("self.normalized_heights", self.normalized_heights_test)
-        print("self.normalized_chests", self.normalized_chests_test)
-        print("self.normalized_body_index_masses", self.normalized_body_index_masses_test)
-        print("self.normalized_body_mass", self.normalized_body_mass_test)
-        print("self.normalized_leans", self.normalized_leans_test)
-        print("self.normalized_forearms", self.normalized_forearms_test)
-        print("self.normalized_shins", self.normalized_shins_test)
-        print("self.normalized_out", self.normalized_out_test)
-
+        samples = {
+            'name': '',
+            'data': []
+        }
         for sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean, output in zip(
-                self.normalized_sexes_test['out']['data'],
-                self.normalized_ages_test['out']['data'],
-                self.normalized_heights_test['out']['data'],
-                self.normalized_body_mass_test['out']['data'],
-                self.normalized_chests_test['out']['data'],
-                self.normalized_body_index_masses_test['out']['data'],
-                self.normalized_shoulders_test['out']['data'],
-                self.normalized_forearms_test['out']['data'],
-                self.normalized_shins_test['out']['data'],
-                self.normalized_leans_test['out']['data'],
-                self.normalized_out_test['out']['data']):
+                self.sexes_test,
+                self.ages_test,
+                self.heights_test,
+                self.body_mass_test,
+                self.chests_test,
+                self.body_index_masses_test,
+                self.shoulders_test,
+                self.forearms_test,
+                self.shins_test,
+                self.leans_test,
+                self.out_test):
             sample = (sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output
-            print("sample test", sample)
-            data_set.addSample((sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output)
+            samples['data'].append(sample)
+            print("%s test" % filename, sample)
+        samples['name'] = filename
+        return samples
 
-        return data_set
-
-    def test_answer(self):
-        
-        pass
-
-    def train_net(self, data_set, epochs, validProp, verbose):  # тренировка данных
-        net = buildNetwork(10, 3, 1)
-        trainer = BackpropTrainer(net, data_set)
-        trainer.trainUntilConvergence(maxEpochs=epochs,
-                                      verbose=verbose)
-        self.get_test_data('mep_test_data_last.csv')
+    def train_net(self, data_set, epochs):  # тренировка данных
+        net = buildNetwork(10, 4, 1, bias=True)
+        # trainer = BackpropTrainer(net, data_set)
+        # trainer = BackpropTrainer(net, data_set, learningrate=0.9, momentum=0.1, weightdecay=0.0, verbose=True)
+        trainer = BackpropTrainer(net, data_set, learningrate=0.01, momentum=0.99)
+        print('BackpropTrainer DONE')
+        # trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=validProp, verbose=verbose, continueEpochs=10)
+        # trainer.trainUntilConvergence(verbose=True, maxEpochs=epochs, continueEpochs=10)
+        # trainer.trainUntilConvergence(verbose=True)
+        for epoch in range(0, epochs):
+            trainer.train()
+        print('TrainUntilConvergence DONE')
         return net
 
     def get_result(self, net):
@@ -355,18 +341,129 @@ class NeuralNetMaster:
         print("answer", answer)
         return self.denormalize(answer, "out")
 
+    def get_result_test(self, net):
+        def calculate_error(expected, real):
+            return abs((real - expected) / expected)
+
+        def mean(numbers):
+            return float(sum(numbers)) / max(len(numbers), 1)
+
+        learned_report = []
+        tested_report = []
+        learned_errors = []
+        tested_errors = []
+        # Полученные данные обучающая и тестовая выборки
+        learned_data = self.get_test_learned_data(1)
+        test_data = self.get_test_learned_data(0)
+        # Выбираем входные данные
+        learned_data_inputs = [list(item[0][0:10]) for item in learned_data['data']]
+        test_data_inputs = [list(item[0][0:10]) for item in test_data['data']]
+        # Выбираем ответы
+        learned_data_answers = [item[1] for item in learned_data['data']]
+        test_data_answers = [item[1] for item in test_data['data']]
+        # Разбор данных обучающая выборка
+        for i in range(len(learned_data_inputs)):
+            results = {
+                'type': 'learned',
+                'input': [],
+                'expected': 0,
+                'real': 0,
+                'error': 0
+            }
+            data = []
+            input_data = learned_data_inputs[i]
+            answer_data = learned_data_answers[i]
+            sex = self.normalizeInput(input_data[0], "sex")
+            age = self.normalizeInput(input_data[1], "age")
+            height = self.normalizeInput(input_data[2], "height")
+            bm = self.normalizeInput(input_data[3], "bm")
+            chest = self.normalizeInput(input_data[4], "chest")
+            bim = self.normalizeInput(input_data[5], "bim")
+            shoulder = self.normalizeInput(input_data[6], "shoulder")
+            forearm = self.normalizeInput(input_data[7], "forearm")
+            shin = self.normalizeInput(input_data[8], "shin")
+            lean = self.normalizeInput(input_data[9], "lean")
+            data.append(sex)
+            data.append(age)
+            data.append(height)
+            data.append(bm)
+            data.append(chest)
+            data.append(bim)
+            data.append(shoulder)
+            data.append(forearm)
+            data.append(shin)
+            data.append(lean)
+            norm_answer = net.activate(data)
+            answer = self.denormalize(norm_answer, "out")
+            results['input'] = input_data
+            results['expected'] = answer_data
+            results['real'] = answer
+            results['error'] = calculate_error(answer_data, answer)
+            learned_errors.append(results['error'])
+            learned_report.append(results)
+        for row in learned_report:
+            print(row)
+        print('learned mean = ', mean(learned_errors))
+        # Разбор данных тестовая выборка
+        for i in range(len(test_data_inputs)):
+            results = {
+                'type': 'tested',
+                'input': [],
+                'expected': 0,
+                'real': 0,
+                'error': 0
+            }
+            data = []
+            input_data = test_data_inputs[i]
+            answer_data = test_data_answers[i]
+            sex = self.normalizeInput(input_data[0], "sex")
+            age = self.normalizeInput(input_data[1], "age")
+            height = self.normalizeInput(input_data[2], "height")
+            bm = self.normalizeInput(input_data[3], "bm")
+            chest = self.normalizeInput(input_data[4], "chest")
+            bim = self.normalizeInput(input_data[5], "bim")
+            shoulder = self.normalizeInput(input_data[6], "shoulder")
+            forearm = self.normalizeInput(input_data[7], "forearm")
+            shin = self.normalizeInput(input_data[8], "shin")
+            lean = self.normalizeInput(input_data[9], "lean")
+            data.append(sex)
+            data.append(age)
+            data.append(height)
+            data.append(bm)
+            data.append(chest)
+            data.append(bim)
+            data.append(shoulder)
+            data.append(forearm)
+            data.append(shin)
+            data.append(lean)
+            norm_answer = net.activate(data)
+            answer = self.denormalize(norm_answer, "out")
+            print('answer net', answer)
+            results['input'] = input_data
+            results['expected'] = answer_data
+            results['real'] = answer
+            results['error'] = calculate_error(answer_data, answer)
+            tested_errors.append(results['error'])
+            tested_report.append(results)
+        for row in tested_report:
+            print(row)
+        print('tested mean = ', mean(tested_errors))
+        # return learned_data_answers
+
     def start(self):  # запуск приложения
         if self.query_type == 'get_data_from_csv_file_and_train':
             # Получение данных из csv файла
             data_set = self.get_data(self.file_name)
             # Тренировка на данных и получение тренированной сети
-            net = self.train_net(data_set, self.EPOCHS, self.VALID_PROP, self.VERBOSE)
+            net = self.train_net(data_set, self.EPOCHS)
             # Сохранение нейросети в файл
             self.save_data(net, self.sample_name)
         elif self.query_type == 'get_answer':
             # Загрузка нейросети из файла
             net = self.load_data(self.sample_name)
             # Активация и получение результата
-            self.RESULT = self.get_result(net)
+            # self.RESULT = self.get_result(net)
+            self.get_result_test(net)
+            # print('Returned report ', report)
 
-# TODO Сделать проверку на ошибку, достаточно иметь 20%, дальше не лезть!
+# TODO Сделать проверку на ошибку, достаточно иметь 20%

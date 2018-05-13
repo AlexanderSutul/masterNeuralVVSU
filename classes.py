@@ -9,63 +9,11 @@ from pybrain.tools.xml.networkreader import NetworkReader
 
 import csv
 
-# БД
-import _sqlite3 as sqlite
-
-
-def connectToDB():
-    connector = sqlite.connect('neural_db.db')
-    return connector
-
-
-def updateParamToDB(connector, data):
-    cursor = connector.cursor()
-    param_name = data['data']['param']
-    minimal = data['data']['min']
-    maximum = data["data"]["max"]
-    sql = """
-            UPDATE params
-            SET min = %s, max = %s
-            WHERE param = '%s'
-            """ % (minimal, maximum, param_name)
-    print(sql)
-    cursor.execute(sql)
-    connector.commit()
-    connector.close()
-
-
-def getParamValuesFromDB(connector, param):
-    result_object = {
-        "min": 0,
-        "max": 0
-    }
-    sql = "SELECT * FROM params WHERE param = '%s'" % param
-    cursor = connector.cursor()
-    cursor.execute(sql)
-    record = cursor.fetchone()
-    result_object['min'] = record[2]
-    result_object['max'] = record[3]
-    print("data getParamValuesFromDB", result_object)
-    return result_object
-
-
-def getParamInputValueForNormalize(connector, param):
-    result_object = {
-        "min": 0,
-        "max": 0
-    }
-    sql = "SELECT * FROM params WHERE param = '%s'" % param
-    cursor = connector.cursor()
-    cursor.execute(sql)
-    record = cursor.fetchone()
-    result_object['min'] = record[2]
-    result_object['max'] = record[3]
-    print("getParamInputValueForNormalize", result_object)
-    return result_object
-
+from db import *
+from additionalFunctions import *
 
 class NeuralNetMaster:
-    EPOCHS = 10000  # TODO Переставить на 10000
+    EPOCHS = 500  # TODO Переставить на 10000
     RESULT = []
 
     sexes = []
@@ -103,18 +51,6 @@ class NeuralNetMaster:
     normalized_forearms = []
     normalized_shins = []
     normalized_out = []
-
-    normalized_sexes_test = []
-    normalized_ages_test = []
-    normalized_shoulders_test = []
-    normalized_heights_test = []
-    normalized_chests_test = []
-    normalized_body_index_masses_test = []
-    normalized_body_mass_test = []
-    normalized_leans_test = []
-    normalized_forearms_test = []
-    normalized_shins_test = []
-    normalized_out_test = []
 
     def __init__(self, file_name, sample_name, query_type, data):
         self.file_name = file_name
@@ -295,26 +231,15 @@ class NeuralNetMaster:
         return samples
 
     def train_net(self, data_set, epochs):  # тренировка данных
-        net = buildNetwork(10, 4, 1, bias=True)
-        # trainer = BackpropTrainer(net, data_set)
-        # trainer = BackpropTrainer(net, data_set, learningrate=0.9, momentum=0.1, weightdecay=0.0, verbose=True)
+        net = buildNetwork(10, 4, 1)
         trainer = BackpropTrainer(net, data_set, learningrate=0.01, momentum=0.99)
         print('BackpropTrainer DONE')
-        # trainer.trainUntilConvergence(maxEpochs=epochs, validationProportion=validProp, verbose=verbose, continueEpochs=10)
-        # trainer.trainUntilConvergence(verbose=True, maxEpochs=epochs, continueEpochs=10)
-        # trainer.trainUntilConvergence(verbose=True)
         for epoch in range(0, epochs):
             trainer.train()
         print('TrainUntilConvergence DONE')
         return net
 
     def get_result(self, net):
-        # Примеры для проверки
-        # input_data1 = [0.0, 0.3287671232876712, 0.25789786664684455, 0.47761194029850745, 0.5882352941176471,
-        #                0.5318417604869441, 0.3, 0.4117647058823529, 0.45, 0.3453618706781417]  # 1.41939898
-        # input_data2 = [1.0, 0.1780821917808219, 1.0, 0.5223880597014925, 0.29411764705882354, 0.2248854027747037, 0.35,
-        #                0.35294117647058826, 0.4, 0.40165179717288246]  # 0.18846153846153846
-        print("self.data_for_analize", self.data_for_analize)
         data = []
         sex = self.normalizeInput(self.data_for_analize[0], "sex")
         age = self.normalizeInput(self.data_for_analize[1], "age")
@@ -342,12 +267,6 @@ class NeuralNetMaster:
         return self.denormalize(answer, "out")
 
     def get_result_test(self, net):
-        def calculate_error(expected, real):
-            return abs((real - expected) / expected)
-
-        def mean(numbers):
-            return float(sum(numbers)) / max(len(numbers), 1)
-
         learned_report = []
         tested_report = []
         learned_errors = []

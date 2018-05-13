@@ -7,7 +7,7 @@ from classes import NeuralNetMaster
 app = Flask(__name__)
 CORS(app)
 
-
+# Получение ответа
 @app.route("/answer", methods=["POST"])
 def get_answer():
     post = request.get_json(silent=True)
@@ -26,6 +26,10 @@ def send_for_train():
     NeuralNetMaster("mep_data_last.csv", 'mep', query_type, None)
     return "Обучение прошло успешно!"
 
+# Проверка, что все работает
+@app.route("/test", methods=["GET"])
+def test():
+    return "Flask is working."
 
 if __name__ == '__main__':
     app.run(debug=False)

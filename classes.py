@@ -465,6 +465,3 @@ class NeuralNetMaster:
             # self.RESULT = self.get_result(net)
             self.get_result_test(net)
             # print('Returned report ', report)
-
-# TODO Сделать проверку на ошибку, достаточно иметь 20%
-# TODO test

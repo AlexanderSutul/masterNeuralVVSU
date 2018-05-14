@@ -3,6 +3,7 @@
 from pybrain.datasets.supervised import SupervisedDataSet
 from pybrain.supervised.trainers.backprop import BackpropTrainer
 from pybrain.tools.shortcuts import buildNetwork
+from pybrain.structure import FeedForwardNetwork, LinearLayer, SigmoidLayer, TanhLayer, FullConnection
 
 from pybrain.tools.xml.networkwriter import NetworkWriter
 from pybrain.tools.xml.networkreader import NetworkReader
@@ -13,7 +14,7 @@ from db import *
 from additionalFunctions import *
 
 class NeuralNetMaster:
-    EPOCHS = 500  # TODO Переставить на 10000
+    EPOCHS = 10  # TODO: переставить потом на 5000
     RESULT = []
 
     sexes = []
@@ -26,7 +27,9 @@ class NeuralNetMaster:
     leans = []
     forearms = []
     shins = []
-    out = []
+    mep = []
+    mip = []
+    snip = []
 
     sexes_test = []
     ages_test = []
@@ -38,7 +41,9 @@ class NeuralNetMaster:
     leans_test = []
     forearms_test = []
     shins_test = []
-    out_test = []
+    mep_test = []
+    mip_test = []
+    snip_test = []
 
     normalized_sexes = []
     normalized_ages = []
@@ -50,7 +55,9 @@ class NeuralNetMaster:
     normalized_leans = []
     normalized_forearms = []
     normalized_shins = []
-    normalized_out = []
+    normalized_mep = []
+    normalized_mip = []
+    normalized_snip = []
 
     def __init__(self, file_name, sample_name, query_type, data):
         self.file_name = file_name
@@ -93,7 +100,7 @@ class NeuralNetMaster:
         b = 1
         a = 0
         y = ((x - x_min) / (x_max - x_min)) * (b - a) + a
-        print(x_min, x_max, x, y, param_name)
+        print('x-min is %s, x-max is %s, x is %s, y is %s, param_name is %s' % (x_min, x_max, x, y, param_name))
         return y
 
     def denormalize(self, x, param):  # денормализация значений
@@ -110,33 +117,29 @@ class NeuralNetMaster:
         NetworkWriter.writeToFile(net, file_name + '.xml')
         print("File saved with name '{0}'.".format(str(file_name)))
 
-    def load_data(self, sample_name):  # загрузка сети в файл
+    def load_data(self, sample_name):  # загрузка сети из файла
         net = NetworkReader.readFrom(sample_name + '.xml')
         return net
 
     def get_data(self, filename):  # получение первичных данных из csv файла
-        doc = open(filename, 'rb')
-        reader = csv.reader(doc)
-        formatted_data = []
-        for row in reader:
-            for items in row:
-                splitted_items = items.split(';')
-                floated_items = [(float(elem)) for elem in splitted_items]
-                formatted_data.append(floated_items)
+        connector = connectToDB()
+        formatted_data = get_all_users(connector)
         data_set = SupervisedDataSet(10, 1)
 
         for row in formatted_data:
-            self.sexes.append(row[0])
-            self.ages.append(row[1])
-            self.heights.append(row[2])
-            self.body_mass.append(row[3])
-            self.chests.append(row[4])
-            self.body_index_masses.append(row[5])
-            self.shoulders.append(row[6])
-            self.forearms.append(row[7])
-            self.shins.append(row[8])
-            self.leans.append(row[9])
-            self.out.append(row[10])
+            self.sexes.append(row[1])
+            self.ages.append(row[2])
+            self.heights.append(row[3])
+            self.body_mass.append(row[4])
+            self.chests.append(row[5])
+            self.body_index_masses.append(row[6])
+            self.shoulders.append(row[7])
+            self.forearms.append(row[8])
+            self.shins.append(row[9])
+            self.leans.append(row[10])
+            self.mep.append(row[11])
+            self.mip.append(row[12])
+            self.snip.append(row[13])
 
         self.normalized_sexes = self.normalize(self.sexes, "sex")
         self.normalized_ages = self.normalize(self.ages, "age")
@@ -148,7 +151,9 @@ class NeuralNetMaster:
         self.normalized_forearms = self.normalize(self.forearms, "forearm")
         self.normalized_shins = self.normalize(self.shins, "shin")
         self.normalized_leans = self.normalize(self.leans, "lean")
-        self.normalized_out = self.normalize(self.out, "out")
+        self.normalized_mep = self.normalize(self.mep, "mep")
+        self.normalized_mip = self.normalize(self.mip, "mip")
+        self.normalized_snip = self.normalize(self.snip, "snip")
         print("self.normalized_sexes", self.normalized_sexes)
         print("self.normalized_ages", self.normalized_ages)
         print("self.normalized_shoulders", self.normalized_shoulders)
@@ -159,7 +164,16 @@ class NeuralNetMaster:
         print("self.normalized_leans", self.normalized_leans)
         print("self.normalized_forearms", self.normalized_forearms)
         print("self.normalized_shins", self.normalized_shins)
-        print("self.normalized_out", self.normalized_out)
+        print("self.normalized_mep", self.normalized_mep)
+        print("self.normalized_mip", self.normalized_mip)
+        print("self.normalized_snip", self.normalized_snip)
+
+        # Название типа анализа
+        sample = self.sample_name
+        current_type_array = []
+        if sample is 'mep': current_type_array = self.normalized_mep['out']['data']
+        elif sample is 'mip': current_type_array = self.normalized_mip['out']['data']
+        elif sample is 'snip': current_type_array = self.normalized_snip['out']['data']
 
         for sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean, output in zip(
                 self.normalized_sexes['out']['data'],
@@ -172,7 +186,7 @@ class NeuralNetMaster:
                 self.normalized_forearms['out']['data'],
                 self.normalized_shins['out']['data'],
                 self.normalized_leans['out']['data'],
-                self.normalized_out['out']['data']):
+                current_type_array):
             sample = (sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output
             print("sample", sample)
             data_set.addSample((sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output)
@@ -181,9 +195,9 @@ class NeuralNetMaster:
 
     def get_test_learned_data(self, file_type):  # получение первичных данных из csv файла
         if file_type is 1:
-            filename = "mep_data_last.csv"
+            filename = "data.csv"
         elif file_type is 0:
-            filename = "mep_test_data_last.csv"
+            filename = "data_test.csv"
         else:
             return None
         doc = open(filename, 'rb')
@@ -194,7 +208,6 @@ class NeuralNetMaster:
                 splitted_items = items.split(';')
                 floated_items = [(float(elem)) for elem in splitted_items]
                 formatted_data.append(floated_items)
-
         for row in formatted_data:
             self.sexes_test.append(row[0])
             self.ages_test.append(row[1])
@@ -206,12 +219,31 @@ class NeuralNetMaster:
             self.forearms_test.append(row[7])
             self.shins_test.append(row[8])
             self.leans_test.append(row[9])
-            self.out_test.append(row[10])
+            self.mep_test.append(row[10])
+            self.mip_test.append(row[11])
+            self.snip_test.append(row[12])
 
         samples = {
-            'name': '',
-            'data': []
+            "name": '',
+            "data": []
         }
+
+        # Название типа анализа
+        sample = str(self.sample_name)
+        print('sample is %s and type is %s' % (sample, type(sample)))
+        current_type_array = []
+        if sample == 'mep':
+            current_type_array = self.mep_test
+            print('sample is %s' % sample)
+        elif sample == 'mip':
+            current_type_array = self.mip_test
+            print('sample is %s' % sample)
+        elif sample == 'snip':
+            current_type_array = self.snip_test
+            print('sample is %s' % sample)
+
+        print('current_type_array test', current_type_array)
+
         for sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean, output in zip(
                 self.sexes_test,
                 self.ages_test,
@@ -223,18 +255,49 @@ class NeuralNetMaster:
                 self.forearms_test,
                 self.shins_test,
                 self.leans_test,
-                self.out_test):
+                current_type_array):
             sample = (sex, age, height, bm, chest, bim, shoulder, forearm, shin, lean), output
+            print('get_test_learned_data', sample)
             samples['data'].append(sample)
             print("%s test" % filename, sample)
         samples['name'] = filename
         return samples
 
-    def train_net(self, data_set, epochs):  # тренировка данных
-        net = buildNetwork(10, 4, 1)
-        trainer = BackpropTrainer(net, data_set, learningrate=0.01, momentum=0.99)
+    def create_neural_net(self):
+        rand_value = 26015 # TODO: посмотреть еще, зачем оно надо...
+        # Создание сети
+        net = FeedForwardNetwork()
+        # Параметры сети
+        inp = LinearLayer(10)
+        out = LinearLayer(1)
+        hidden1 = SigmoidLayer(18)
+        hidden2 = TanhLayer(8)
+        hidden3 = TanhLayer(6)
+        hidden4 = TanhLayer(6)
+        # Модули сети
+        net.addOutputModule(out)
+        net.addInputModule(inp)
+        net.addModule(hidden1)
+        net.addModule(hidden2)
+        net.addModule(hidden3)
+        net.addModule(hidden4)
+        # Создание связей
+        net.addConnection(FullConnection(inp, hidden1))
+        net.addConnection(FullConnection(hidden1, hidden2))
+        net.addConnection(FullConnection(hidden2, hidden3))
+        net.addConnection(FullConnection(hidden3, hidden4))
+        net.addConnection(FullConnection(hidden4, out))
+        # Подготовка - сортировка модулей
+        net.sortModules()
+        return net
+
+    def train_net(self, data_set, epochs): # тренировка данных
+        net = self.create_neural_net()
+        trainer = BackpropTrainer(net, data_set)
         print('BackpropTrainer DONE')
-        for epoch in range(0, epochs):
+        for i in range(0, epochs):
+            if i % 10 is 0 and i is not 0:
+                print('Тренировка преодолела рубеж -> %s шагов' % i)
             trainer.train()
         print('TrainUntilConvergence DONE')
         return net
@@ -264,7 +327,7 @@ class NeuralNetMaster:
         print('data', data)
         answer = net.activate(data)
         print("answer", answer)
-        return self.denormalize(answer, "out")
+        return self.denormalize(answer, self.sample)
 
     def get_result_test(self, net):
         learned_report = []
@@ -274,9 +337,10 @@ class NeuralNetMaster:
         # Полученные данные обучающая и тестовая выборки
         learned_data = self.get_test_learned_data(1)
         test_data = self.get_test_learned_data(0)
+        print('get_result_test', learned_data, test_data)
         # Выбираем входные данные
-        learned_data_inputs = [list(item[0][0:10]) for item in learned_data['data']]
-        test_data_inputs = [list(item[0][0:10]) for item in test_data['data']]
+        learned_data_inputs = [list(item[0][0:11]) for item in learned_data['data']]
+        test_data_inputs = [list(item[0][0:11]) for item in test_data['data']]
         # Выбираем ответы
         learned_data_answers = [item[1] for item in learned_data['data']]
         test_data_answers = [item[1] for item in test_data['data']]
@@ -291,6 +355,7 @@ class NeuralNetMaster:
             }
             data = []
             input_data = learned_data_inputs[i]
+            print('learned_data_inputs[i]', learned_data_inputs[i])
             answer_data = learned_data_answers[i]
             sex = self.normalizeInput(input_data[0], "sex")
             age = self.normalizeInput(input_data[1], "age")
@@ -312,8 +377,9 @@ class NeuralNetMaster:
             data.append(forearm)
             data.append(shin)
             data.append(lean)
+            print('data get_result_test', data)
             norm_answer = net.activate(data)
-            answer = self.denormalize(norm_answer, "out")
+            answer = self.denormalize(norm_answer, self.sample_name)
             results['input'] = input_data
             results['expected'] = answer_data
             results['real'] = answer
@@ -356,7 +422,7 @@ class NeuralNetMaster:
             data.append(shin)
             data.append(lean)
             norm_answer = net.activate(data)
-            answer = self.denormalize(norm_answer, "out")
+            answer = self.denormalize(norm_answer, str(self.sample_name))
             print('answer net', answer)
             results['input'] = input_data
             results['expected'] = answer_data

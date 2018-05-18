@@ -14,7 +14,7 @@ from db import *
 from additionalFunctions import *
 
 class NeuralNetMaster:
-    EPOCHS = 10  # TODO: переставить потом на 5000
+    EPOCHS = 5000  # TODO: переставить потом на 5000
     RESULT = []
 
     sexes = []
@@ -327,7 +327,7 @@ class NeuralNetMaster:
         print('data', data)
         answer = net.activate(data)
         print("answer", answer)
-        return self.denormalize(answer, self.sample)
+        return self.denormalize(answer, self.sample_name)
 
     def get_result_test(self, net):
         learned_report = []
@@ -436,7 +436,7 @@ class NeuralNetMaster:
         # return learned_data_answers
 
     def start(self):  # запуск приложения
-        if self.query_type == 'get_data_from_csv_file_and_train':
+        if self.query_type == 'train':
             # Получение данных из csv файла
             data_set = self.get_data(self.file_name)
             # Тренировка на данных и получение тренированной сети
@@ -447,6 +447,6 @@ class NeuralNetMaster:
             # Загрузка нейросети из файла
             net = self.load_data(self.sample_name)
             # Активация и получение результата
-            # self.RESULT = self.get_result(net)
+            self.RESULT = self.get_result(net)
             self.get_result_test(net)
             # print('Returned report ', report)

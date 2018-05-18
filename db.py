@@ -91,8 +91,16 @@ def add_pattients_to_db_from_csv(connector, filename):
 def get_all_users(connector):
     users = []
     cursor = connector.cursor()
-    sql_query = "SELECT * FROM patients"
+    sql_query = "SELECT * FROM patients ORDER BY id DESC"
     cursor.execute(sql_query)
     users = cursor.fetchall()
     connector.close()
     return users
+
+def delete_patient(connector, id):
+    cursor = connector.cursor()
+    sql_query = "DELETE FROM patients WHERE id=%s" % id
+    cursor.execute(sql_query)
+    connector.commit()
+    connector.close()
+    return 'Patient with id %s was deleted' % id

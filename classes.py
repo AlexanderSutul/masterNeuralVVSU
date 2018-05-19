@@ -270,7 +270,7 @@ class NeuralNetMaster:
         # Параметры сети
         inp = LinearLayer(10)
         out = LinearLayer(1)
-        hidden1 = SigmoidLayer(18)
+        hidden1 = SigmoidLayer(13)
         hidden2 = TanhLayer(8)
         hidden3 = TanhLayer(6)
         hidden4 = TanhLayer(6)

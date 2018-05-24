@@ -14,7 +14,7 @@ from db import *
 from additionalFunctions import *
 
 class NeuralNetMaster:
-    EPOCHS = 5000  # TODO: переставить потом на 5000
+    EPOCHS = 10000  # TODO: переставить потом на 5000
     RESULT = []
 
     sexes = []

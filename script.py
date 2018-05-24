@@ -62,7 +62,7 @@ def get_answer():
     answer = NeuralNetMaster("data.csv", type_for_analize, query_type, data)
     return str(answer.RESULT)
 
-# Обучение данных
+# Обучение нейронной сети
 @app.route("/train_mep", methods=["GET"])
 def send_for_train_mep():
     NeuralNetMaster("data.csv", 'mep', 'train', None)
@@ -78,7 +78,7 @@ def send_for_train_snip():
     NeuralNetMaster("data.csv", 'snip', 'train', None)
     return "Обучение 'snip' прошло успешно!\n"
 
-# Проверка, что все работает
+# Тестирование, что все работает
 @app.route("/test", methods=["GET"])
 def test():
     return "Flask is working.\n"

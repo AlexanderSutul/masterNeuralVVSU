@@ -62,6 +62,15 @@ def get_answer():
     answer = NeuralNetMaster("data.csv", type_for_analize, query_type, data)
     return str(answer.RESULT)
 
+# Получение ответа о конретном пациенте
+@app.route("/answer_id", methods=["POST"])
+def get_answer_by_id():
+    post = request.get_json(silent=True)
+    id = post['id']
+    connector = connectToDB()
+    print('say hello!')
+    return str('hey')
+
 # Обучение нейронной сети
 @app.route("/train_mep", methods=["GET"])
 def send_for_train_mep():

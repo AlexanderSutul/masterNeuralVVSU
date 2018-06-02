@@ -19,7 +19,8 @@ CORS(app)
 # Добавление здорового пациента в БД Тест
 @app.route("/add_patient_test", methods=["GET"])
 def add_patient_test():
-    data = ['null', 0, 18, 1.64, 60, 78, 22.30814991, 35, 27,	37,	35696.20969, 69, 55, 55]
+    data = ['null', 0, 18, 1.64, 60, 78, 22.30814991, 35, 27,
+                37,	35696.20969, 69, 55, 55]
     connector = connectToDB()
     result = add_new_patient(connector, data)
     return result
